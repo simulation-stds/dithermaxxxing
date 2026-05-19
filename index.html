@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NABU Green Dither Lab</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101312;
+      --panel: #181c1a;
+      --panel-2: #202622;
+      --ink: #eef6e8;
+      --muted: #aab8ad;
+      --line: #344039;
+      --accent: #92d455;
+      --accent-2: #2fd0a0;
+      --danger: #ff756b;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(135deg, rgba(47, 208, 160, 0.08), transparent 32rem),
+        linear-gradient(315deg, rgba(146, 212, 85, 0.08), transparent 28rem),
+        var(--bg);
+      color: var(--ink);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+      gap: 0;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: rgba(24, 28, 26, 0.94);
+      height: 100vh;
+      padding: 18px;
+      overflow-y: auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.05rem;
+      line-height: 1.2;
+      letter-spacing: 0;
+      font-weight: 760;
+    }
+
+    .badge {
+      border: 1px solid rgba(146, 212, 85, 0.45);
+      color: #cffa9a;
+      background: rgba(146, 212, 85, 0.1);
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .dropzone {
+      position: relative;
+      border: 1px dashed #65746a;
+      border-radius: 8px;
+      background: #111613;
+      padding: 18px;
+      min-height: 128px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      transition: border-color 150ms ease, background 150ms ease;
+    }
+
+    .dropzone.is-over {
+      border-color: var(--accent);
+      background: rgba(146, 212, 85, 0.09);
+    }
+
+    .dropzone strong {
+      display: block;
+      color: var(--ink);
+      font-size: 0.95rem;
+      margin-bottom: 5px;
+    }
+
+    .dropzone span {
+      display: block;
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+
+    .dropzone input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    fieldset {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin: 14px 0 0;
+      padding: 14px;
+      background: rgba(32, 38, 34, 0.66);
+    }
+
+    legend {
+      padding: 0 7px;
+      color: #dcebd9;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .control {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px 12px;
+      align-items: center;
+      margin: 12px 0;
+    }
+
+    .control:first-of-type {
+      margin-top: 4px;
+    }
+
+    label,
+    .label {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .value {
+      color: #dcebd9;
+      font-variant-numeric: tabular-nums;
+      font-size: 0.78rem;
+    }
+
+    .control input[type="range"] {
+      grid-column: 1 / -1;
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .control input[type="number"],
+    .control select,
+    .control input[type="color"] {
+      width: 100%;
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: var(--ink);
+      background: #121714;
+      padding: 6px 8px;
+    }
+
+    .control input[type="color"] {
+      width: 52px;
+      padding: 2px;
+      height: 34px;
+      cursor: pointer;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .two-col .control {
+      grid-template-columns: 1fr;
+      gap: 6px;
+      margin: 8px 0;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .check-row input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button,
+    .file-button {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #202720;
+      color: var(--ink);
+      padding: 8px 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: border-color 150ms ease, transform 150ms ease, background 150ms ease;
+    }
+
+    button:hover,
+    .file-button:hover {
+      border-color: #698376;
+      background: #263029;
+    }
+
+    button:active,
+    .file-button:active {
+      transform: translateY(1px);
+    }
+
+    button.primary {
+      border-color: rgba(146, 212, 85, 0.7);
+      background: #29401f;
+      color: #ecffd8;
+    }
+
+    button:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .file-button input {
+      display: none;
+    }
+
+    .stage {
+      min-width: 0;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .toolbar {
+      min-height: 58px;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      background: rgba(16, 19, 18, 0.82);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: rgba(32, 38, 34, 0.72);
+    }
+
+    .canvas-wrap {
+      min-width: 0;
+      min-height: 0;
+      padding: 22px;
+      display: grid;
+      place-items: center;
+      overflow: auto;
+    }
+
+    .preview-shell {
+      width: min(100%, 1100px);
+      min-height: min(70vh, 760px);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(45deg, #151a17 25%, transparent 25%),
+        linear-gradient(-45deg, #151a17 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #151a17 75%),
+        linear-gradient(-45deg, transparent 75%, #151a17 75%),
+        #0d100f;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      background-size: 16px 16px;
+      box-shadow: var(--shadow);
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+
+    canvas {
+      max-width: 100%;
+      max-height: calc(100vh - 160px);
+      image-rendering: pixelated;
+      background: #020402;
+      border-radius: 3px;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      max-width: 340px;
+      line-height: 1.45;
+      padding: 24px;
+    }
+
+    .empty-state strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 6px;
+      font-size: 1rem;
+    }
+
+    .status {
+      min-height: 18px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-top: 10px;
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .source-canvas {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow: visible;
+      }
+
+      .sidebar {
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .stage {
+        height: auto;
+        min-height: 62vh;
+      }
+
+      .toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .canvas-wrap {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>NABU Green Dither Lab</h1>
+        <span class="badge">Offline HTML</span>
+      </div>
+
+      <div class="dropzone" id="dropzone">
+        <div>
+          <strong>Drop an image</strong>
+          <span>or select PNG, JPEG, GIF, BMP, or WebP from disk</span>
+        </div>
+        <input id="imageInput" type="file" accept="image/*" aria-label="Upload image">
+      </div>
+
+      <fieldset>
+        <legend>Image</legend>
+        <div class="control">
+          <label for="fitMode">Fit mode</label>
+          <select id="fitMode">
+            <option value="contain">Contain</option>
+            <option value="cover">Cover</option>
+            <option value="original">Original</option>
+          </select>
+        </div>
+
+        <div class="two-col">
+          <div class="control">
+            <label for="outputWidth">Output width</label>
+            <input id="outputWidth" type="number" min="8" max="4096" step="1" value="640">
+          </div>
+          <div class="control">
+            <label for="outputHeight">Output height</label>
+            <input id="outputHeight" type="number" min="8" max="4096" step="1" value="400">
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="pixelScale">Pixel size</label>
+          <select id="pixelScale">
+            <option value="1">1x</option>
+            <option value="2" selected>2x</option>
+            <option value="4">4x</option>
+            <option value="8">8x</option>
+          </select>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Look</legend>
+        <div class="control">
+          <label for="bayerSize">Bayer size</label>
+          <select id="bayerSize">
+            <option value="2">2x2</option>
+            <option value="4" selected>4x4</option>
+            <option value="8">8x8</option>
+            <option value="16">16x16</option>
+          </select>
+        </div>
+
+        <div class="control">
+          <label for="ditherStrength">Dither strength</label>
+          <span class="value" data-value-for="ditherStrength"></span>
+          <input id="ditherStrength" type="range" min="0" max="1" step="0.01" value="0.34">
+        </div>
+
+        <div class="control">
+          <label for="posterizeLevels">Posterize levels</label>
+          <span class="value" data-value-for="posterizeLevels"></span>
+          <input id="posterizeLevels" type="range" min="2" max="16" step="1" value="6">
+        </div>
+
+        <div class="control">
+          <label for="blackPoint">Black point</label>
+          <span class="value" data-value-for="blackPoint"></span>
+          <input id="blackPoint" type="range" min="0" max="0.95" step="0.01" value="0.03">
+        </div>
+
+        <div class="control">
+          <label for="whitePoint">White point</label>
+          <span class="value" data-value-for="whitePoint"></span>
+          <input id="whitePoint" type="range" min="0.05" max="1" step="0.01" value="0.92">
+        </div>
+
+        <div class="control">
+          <label for="gamma">Gamma</label>
+          <span class="value" data-value-for="gamma"></span>
+          <input id="gamma" type="range" min="0.2" max="3" step="0.01" value="1">
+        </div>
+
+        <div class="control">
+          <label for="contrast">Contrast</label>
+          <span class="value" data-value-for="contrast"></span>
+          <input id="contrast" type="range" min="-1" max="1" step="0.01" value="0.18">
+        </div>
+
+        <div class="control">
+          <label for="brightness">Brightness</label>
+          <span class="value" data-value-for="brightness"></span>
+          <input id="brightness" type="range" min="-1" max="1" step="0.01" value="0">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Palette</legend>
+        <div class="control">
+          <label for="palettePreset">Preset</label>
+          <select id="palettePreset">
+            <option value="nabu">NABU green</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+
+        <div class="control">
+          <label for="shadowColor">Shadow color</label>
+          <input id="shadowColor" type="color" value="#0d0d0d">
+        </div>
+
+        <div class="control">
+          <label for="midColor">Mid color</label>
+          <input id="midColor" type="color" value="#00ff48">
+        </div>
+
+        <div class="control">
+          <label for="highlightColor">Highlight color</label>
+          <input id="highlightColor" type="color" value="#8cf2c3">
+        </div>
+
+        <label class="check-row" for="invertPalette">
+          <span>Invert palette</span>
+          <input id="invertPalette" type="checkbox">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Export</legend>
+        <div class="actions">
+          <button class="primary" id="downloadPng" type="button" disabled>Download PNG</button>
+          <button id="copyPng" type="button" disabled>Copy PNG</button>
+          <button id="savePreset" type="button">Save JSON</button>
+          <label class="file-button">
+            Load JSON
+            <input id="loadPreset" type="file" accept="application/json,.json">
+          </label>
+        </div>
+        <div class="status" id="status" role="status"></div>
+      </fieldset>
+    </aside>
+
+    <main class="stage">
+      <div class="toolbar">
+        <div class="meta" id="meta">
+          <span class="pill">No image loaded</span>
+        </div>
+        <div class="meta">
+          <span class="pill">Canvas 2D</span>
+          <span class="pill">Bayer threshold</span>
+          <span class="pill">PNG export</span>
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <div class="preview-shell">
+          <div class="empty-state" id="emptyState">
+            <strong>Ready for an image</strong>
+            Drop or select a file to render a green phosphor ordered dither.
+          </div>
+          <canvas id="previewCanvas" hidden></canvas>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <canvas id="sourceCanvas" class="source-canvas"></canvas>
+
+  <script>
+    const NABU_PALETTE = {
+      shadowColor: "#0d0d0d",
+      midColor: "#00ff48",
+      highlightColor: "#8cf2c3"
+    };
+
+    const controls = {
+      imageInput: document.getElementById("imageInput"),
+      dropzone: document.getElementById("dropzone"),
+      fitMode: document.getElementById("fitMode"),
+      outputWidth: document.getElementById("outputWidth"),
+      outputHeight: document.getElementById("outputHeight"),
+      pixelScale: document.getElementById("pixelScale"),
+      bayerSize: document.getElementById("bayerSize"),
+      ditherStrength: document.getElementById("ditherStrength"),
+      posterizeLevels: document.getElementById("posterizeLevels"),
+      blackPoint: document.getElementById("blackPoint"),
+      whitePoint: document.getElementById("whitePoint"),
+      gamma: document.getElementById("gamma"),
+      contrast: document.getElementById("contrast"),
+      brightness: document.getElementById("brightness"),
+      palettePreset: document.getElementById("palettePreset"),
+      shadowColor: document.getElementById("shadowColor"),
+      midColor: document.getElementById("midColor"),
+      highlightColor: document.getElementById("highlightColor"),
+      invertPalette: document.getElementById("invertPalette"),
+      downloadPng: document.getElementById("downloadPng"),
+      copyPng: document.getElementById("copyPng"),
+      savePreset: document.getElementById("savePreset"),
+      loadPreset: document.getElementById("loadPreset")
+    };
+
+    const sourceCanvas = document.getElementById("sourceCanvas");
+    const previewCanvas = document.getElementById("previewCanvas");
+    const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
+    const previewCtx = previewCanvas.getContext("2d");
+    const emptyState = document.getElementById("emptyState");
+    const statusEl = document.getElementById("status");
+    const metaEl = document.getElementById("meta");
+
+    let sourceImage = null;
+    let sourceName = "";
+    let renderQueued = false;
+    const bayerCache = new Map();
+
+    function clamp(value, min = 0, max = 1) {
+      if (!Number.isFinite(value)) {
+        return min;
+      }
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function getNumber(id) {
+      return Number(controls[id].value);
+    }
+
+    function getSettings() {
+      return {
+        fitMode: controls.fitMode.value,
+        outputWidth: Math.round(clamp(getNumber("outputWidth"), 8, 4096)),
+        outputHeight: Math.round(clamp(getNumber("outputHeight"), 8, 4096)),
+        pixelScale: getNumber("pixelScale"),
+        bayerSize: getNumber("bayerSize"),
+        ditherStrength: getNumber("ditherStrength"),
+        posterizeLevels: getNumber("posterizeLevels"),
+        blackPoint: getNumber("blackPoint"),
+        whitePoint: getNumber("whitePoint"),
+        gamma: getNumber("gamma"),
+        contrast: getNumber("contrast"),
+        brightness: getNumber("brightness"),
+        palettePreset: controls.palettePreset.value,
+        shadowColor: controls.shadowColor.value,
+        midColor: controls.midColor.value,
+        highlightColor: controls.highlightColor.value,
+        invertPalette: controls.invertPalette.checked
+      };
+    }
+
+    function setStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.classList.toggle("error", isError);
+    }
+
+    function updateValueLabels() {
+      document.querySelectorAll("[data-value-for]").forEach((node) => {
+        const id = node.dataset.valueFor;
+        const value = controls[id].value;
+        node.textContent = id === "posterizeLevels" ? value : Number(value).toFixed(2);
+      });
+    }
+
+    function setExportEnabled(enabled) {
+      controls.downloadPng.disabled = !enabled;
+      controls.copyPng.disabled = !enabled;
+    }
+
+    function makeBayer(size) {
+      if (bayerCache.has(size)) {
+        return bayerCache.get(size);
+      }
+
+      let matrix = [[0, 2], [3, 1]];
+      while (matrix.length < size) {
+        const n = matrix.length;
+        const next = Array.from({ length: n * 2 }, () => Array(n * 2).fill(0));
+        for (let y = 0; y < n; y += 1) {
+          for (let x = 0; x < n; x += 1) {
+            const value = matrix[y][x] * 4;
+            next[y][x] = value;
+            next[y][x + n] = value + 2;
+            next[y + n][x] = value + 3;
+            next[y + n][x + n] = value + 1;
+          }
+        }
+        matrix = next;
+      }
+
+      const divisor = size * size;
+      const normalized = matrix.map((row) => row.map((value) => (value + 0.5) / divisor));
+      bayerCache.set(size, normalized);
+      return normalized;
+    }
+
+    function hexToRgb(hex) {
+      const clean = hex.replace("#", "");
+      const value = Number.parseInt(clean, 16);
+      return {
+        r: (value >> 16) & 255,
+        g: (value >> 8) & 255,
+        b: value & 255
+      };
+    }
+
+    function mixRgb(a, b, t) {
+      return {
+        r: Math.round(a.r + (b.r - a.r) * t),
+        g: Math.round(a.g + (b.g - a.g) * t),
+        b: Math.round(a.b + (b.b - a.b) * t)
+      };
+    }
+
+    function mapPalette(luma, settings) {
+      const shadow = hexToRgb(settings.shadowColor);
+      const mid = hexToRgb(settings.midColor);
+      const highlight = hexToRgb(settings.highlightColor);
+      const value = settings.invertPalette ? 1 - luma : luma;
+
+      if (value <= 0.5) {
+        return mixRgb(shadow, mid, value / 0.5);
+      }
+      return mixRgb(mid, highlight, (value - 0.5) / 0.5);
+    }
+
+    function computeDrawRect(image, width, height, fitMode) {
+      if (fitMode === "original") {
+        return {
+          x: Math.round((width - image.naturalWidth) / 2),
+          y: Math.round((height - image.naturalHeight) / 2),
+          w: image.naturalWidth,
+          h: image.naturalHeight
+        };
+      }
+
+      const scale = fitMode === "cover"
+        ? Math.max(width / image.naturalWidth, height / image.naturalHeight)
+        : Math.min(width / image.naturalWidth, height / image.naturalHeight);
+      const w = Math.round(image.naturalWidth * scale);
+      const h = Math.round(image.naturalHeight * scale);
+      return {
+        x: Math.round((width - w) / 2),
+        y: Math.round((height - h) / 2),
+        w,
+        h
+      };
+    }
+
+    function rasterizeSource(settings, sampleWidth, sampleHeight) {
+      sourceCanvas.width = sampleWidth;
+      sourceCanvas.height = sampleHeight;
+      sourceCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+      sourceCtx.fillStyle = "#000";
+      sourceCtx.fillRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+      sourceCtx.imageSmoothingEnabled = true;
+      sourceCtx.imageSmoothingQuality = "high";
+
+      const rect = computeDrawRect(sourceImage, sampleWidth, sampleHeight, settings.fitMode);
+      sourceCtx.drawImage(sourceImage, rect.x, rect.y, rect.w, rect.h);
+    }
+
+    function toneLuma(r, g, b, settings) {
+      let luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+      const range = Math.max(0.001, settings.whitePoint - settings.blackPoint);
+
+      luma = clamp((luma - settings.blackPoint) / range);
+      luma = clamp((luma - 0.5) * (1 + settings.contrast) + 0.5 + settings.brightness);
+      return Math.pow(luma, 1 / Math.max(0.001, settings.gamma));
+    }
+
+    function ditherAndPosterize(luma, settings, x, y, bayer) {
+      const zoom = Math.max(1, Math.round(settings.pixelScale));
+      const matrixX = Math.floor(x / zoom) % settings.bayerSize;
+      const matrixY = Math.floor(y / zoom) % settings.bayerSize;
+      const threshold = bayer[matrixY][matrixX];
+      luma = clamp(luma + (threshold - 0.5) * settings.ditherStrength);
+
+      const steps = Math.max(2, settings.posterizeLevels);
+      return Math.round(luma * (steps - 1)) / (steps - 1);
+    }
+
+    function render() {
+      renderQueued = false;
+      updateValueLabels();
+
+      if (!sourceImage) {
+        return;
+      }
+
+      const settings = getSettings();
+      if (settings.whitePoint <= settings.blackPoint) {
+        setStatus("White point must be above black point.", true);
+        setExportEnabled(false);
+        return;
+      }
+
+      const finalWidth = settings.outputWidth;
+      const finalHeight = settings.outputHeight;
+      const sampleWidth = Math.ceil(finalWidth / settings.pixelScale);
+      const sampleHeight = Math.ceil(finalHeight / settings.pixelScale);
+
+      if (finalWidth > 16384 || finalHeight > 16384 || finalWidth * finalHeight > 64000000) {
+        setStatus("Reduce output size for this browser canvas.", true);
+        setExportEnabled(false);
+        return;
+      }
+
+      rasterizeSource(settings, sampleWidth, sampleHeight);
+
+      const src = sourceCtx.getImageData(0, 0, sampleWidth, sampleHeight);
+      const output = previewCtx.createImageData(finalWidth, finalHeight);
+      const bayer = makeBayer(settings.bayerSize);
+
+      for (let y = 0; y < sampleHeight; y += 1) {
+        for (let x = 0; x < sampleWidth; x += 1) {
+          const sourceIndex = (y * sampleWidth + x) * 4;
+          const alpha = src.data[sourceIndex + 3];
+          const tonedLuma = toneLuma(
+            src.data[sourceIndex],
+            src.data[sourceIndex + 1],
+            src.data[sourceIndex + 2],
+            settings
+          );
+
+          for (let sy = 0; sy < settings.pixelScale; sy += 1) {
+            const outY = y * settings.pixelScale + sy;
+            if (outY >= finalHeight) {
+              continue;
+            }
+            for (let sx = 0; sx < settings.pixelScale; sx += 1) {
+              const outX = x * settings.pixelScale + sx;
+              if (outX >= finalWidth) {
+                continue;
+              }
+              const luma = ditherAndPosterize(tonedLuma, settings, outX, outY, bayer);
+              const color = mapPalette(luma, settings);
+              const outIndex = (outY * finalWidth + outX) * 4;
+              output.data[outIndex] = color.r;
+              output.data[outIndex + 1] = color.g;
+              output.data[outIndex + 2] = color.b;
+              output.data[outIndex + 3] = alpha;
+            }
+          }
+        }
+      }
+
+      previewCanvas.width = finalWidth;
+      previewCanvas.height = finalHeight;
+      previewCtx.putImageData(output, 0, 0);
+      previewCanvas.hidden = false;
+      emptyState.hidden = true;
+      setExportEnabled(true);
+      setStatus("Rendered.");
+      updateMeta(settings);
+    }
+
+    function queueRender() {
+      if (renderQueued) {
+        return;
+      }
+      renderQueued = true;
+      requestAnimationFrame(render);
+    }
+
+    function updateMeta(settings) {
+      metaEl.innerHTML = "";
+      [
+        sourceName || "Image",
+        `${sourceImage.naturalWidth}x${sourceImage.naturalHeight} source`,
+        `${previewCanvas.width}x${previewCanvas.height} PNG`,
+        `${settings.pixelScale}x pixels`,
+        `${settings.bayerSize}x${settings.bayerSize} Bayer`,
+        `${settings.posterizeLevels} levels`
+      ].forEach((text) => {
+        const node = document.createElement("span");
+        node.className = "pill";
+        node.textContent = text;
+        metaEl.appendChild(node);
+      });
+    }
+
+    function applyPresetPalette() {
+      if (controls.palettePreset.value !== "nabu") {
+        return;
+      }
+      controls.shadowColor.value = NABU_PALETTE.shadowColor;
+      controls.midColor.value = NABU_PALETTE.midColor;
+      controls.highlightColor.value = NABU_PALETTE.highlightColor;
+    }
+
+    function markCustomPalette() {
+      controls.palettePreset.value = "custom";
+    }
+
+    async function loadImageFile(file) {
+      if (!file || !file.type.startsWith("image/")) {
+        setStatus("Choose an image file.", true);
+        return;
+      }
+
+      const url = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => {
+        URL.revokeObjectURL(url);
+        sourceImage = image;
+        sourceName = file.name;
+        setStatus(`Loaded ${file.name}.`);
+        queueRender();
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(url);
+        setStatus("Could not load that image.", true);
+      };
+      image.src = url;
+    }
+
+    function downloadPng() {
+      if (!sourceImage) {
+        return;
+      }
+
+      previewCanvas.toBlob((blob) => {
+        if (!blob) {
+          setStatus("PNG export failed.", true);
+          return;
+        }
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        const base = sourceName.replace(/\.[^.]+$/, "") || "nabu-dither";
+        link.href = url;
+        link.download = `${base}-nabu-dither.png`;
+        link.click();
+        URL.revokeObjectURL(url);
+        setStatus("PNG downloaded.");
+      }, "image/png");
+    }
+
+    async function copyPng() {
+      if (!sourceImage) {
+        return;
+      }
+
+      if (!navigator.clipboard || typeof ClipboardItem === "undefined") {
+        setStatus("Clipboard image copy is not available in this browser.", true);
+        return;
+      }
+
+      previewCanvas.toBlob(async (blob) => {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+          setStatus("PNG copied to clipboard.");
+        } catch (error) {
+          setStatus("Clipboard permission was denied.", true);
+        }
+      }, "image/png");
+    }
+
+    function savePreset() {
+      const preset = {
+        version: 1,
+        app: "NABU Green Dither Lab",
+        settings: getSettings()
+      };
+      const blob = new Blob([JSON.stringify(preset, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "nabu-dither-preset.json";
+      link.click();
+      URL.revokeObjectURL(url);
+      setStatus("Preset JSON saved.");
+    }
+
+    async function loadPreset(file) {
+      if (!file) {
+        return;
+      }
+
+      try {
+        const data = JSON.parse(await file.text());
+        const settings = data.settings || data;
+        Object.entries(settings).forEach(([key, value]) => {
+          if (!(key in controls)) {
+            return;
+          }
+
+          const control = controls[key];
+          if (control.type === "checkbox") {
+            control.checked = Boolean(value);
+          } else {
+            control.value = value;
+          }
+        });
+        updateValueLabels();
+        setStatus("Preset loaded.");
+        queueRender();
+      } catch (error) {
+        setStatus("Preset JSON could not be read.", true);
+      } finally {
+        controls.loadPreset.value = "";
+      }
+    }
+
+    controls.dropzone.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      controls.dropzone.classList.add("is-over");
+    });
+
+    controls.dropzone.addEventListener("dragleave", () => {
+      controls.dropzone.classList.remove("is-over");
+    });
+
+    controls.dropzone.addEventListener("drop", (event) => {
+      event.preventDefault();
+      controls.dropzone.classList.remove("is-over");
+      loadImageFile(event.dataTransfer.files[0]);
+    });
+
+    controls.imageInput.addEventListener("change", (event) => {
+      loadImageFile(event.target.files[0]);
+    });
+
+    controls.palettePreset.addEventListener("change", () => {
+      applyPresetPalette();
+      queueRender();
+    });
+
+    ["shadowColor", "midColor", "highlightColor"].forEach((id) => {
+      controls[id].addEventListener("input", () => {
+        markCustomPalette();
+        queueRender();
+      });
+    });
+
+    Object.entries(controls).forEach(([id, control]) => {
+      if (!control || ["imageInput", "dropzone", "downloadPng", "copyPng", "savePreset", "loadPreset", "palettePreset", "shadowColor", "midColor", "highlightColor"].includes(id)) {
+        return;
+      }
+      control.addEventListener("input", queueRender);
+      control.addEventListener("change", queueRender);
+    });
+
+    controls.downloadPng.addEventListener("click", downloadPng);
+    controls.copyPng.addEventListener("click", copyPng);
+    controls.savePreset.addEventListener("click", savePreset);
+    controls.loadPreset.addEventListener("change", (event) => loadPreset(event.target.files[0]));
+
+    updateValueLabels();
+    setExportEnabled(false);
+  </script>
+</body>
+</html>
