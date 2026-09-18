@@ -178,6 +178,10 @@ label,
   cursor: pointer;
 }
 
+.two-col[hidden] {
+  display: none;
+}
+
 .two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -207,14 +211,14 @@ label,
 }
 
 .actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 10px;
-  margin-top: 14px;
+  margin-top: 0;
 }
 
-button,
-.file-button {
+button {
   min-height: 38px;
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -229,14 +233,12 @@ button,
   transition: border-color 150ms ease, transform 150ms ease, background 150ms ease;
 }
 
-button:hover,
-.file-button:hover {
+button:hover {
   border-color: #698376;
   background: #263029;
 }
 
-button:active,
-.file-button:active {
+button:active {
   transform: translateY(1px);
 }
 
@@ -252,7 +254,7 @@ button:disabled {
   transform: none;
 }
 
-.file-button input {
+.hidden-file-input {
   display: none;
 }
 
@@ -260,7 +262,7 @@ button:disabled {
   min-width: 0;
   height: 100vh;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .toolbar {
@@ -293,8 +295,9 @@ button:disabled {
   min-width: 0;
   min-height: 0;
   padding: 22px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: auto;
 }
 
@@ -315,6 +318,16 @@ button:disabled {
   display: grid;
   place-items: center;
   padding: 18px;
+}
+
+.export-bar {
+  border-top: 1px solid var(--line);
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: rgba(16, 19, 18, 0.82);
 }
 
 canvas {
@@ -341,10 +354,12 @@ canvas {
 }
 
 .status {
+  flex: 1;
   min-height: 18px;
   color: var(--muted);
   font-size: 0.78rem;
-  margin-top: 10px;
+  margin-top: 0;
+  text-align: left;
 }
 
 .status.error {
@@ -380,5 +395,19 @@ canvas {
 
   .canvas-wrap {
     padding: 14px;
+  }
+
+  .export-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .status {
+    text-align: left;
   }
 }

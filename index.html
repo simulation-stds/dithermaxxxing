@@ -33,14 +33,34 @@
           </select>
         </div>
 
-        <div class="two-col">
+        <div class="control">
+          <label for="sizePreset">Format</label>
+          <select id="sizePreset">
+            <option value="custom">Custom</option>
+            <option value="square">Square (1:1)</option>
+            <option value="horizontal" selected>Horizontal (16:9)</option>
+            <option value="vertical">Vertical (9:16)</option>
+          </select>
+        </div>
+
+        <div class="control">
+          <label for="outputSize">Size</label>
+          <select id="outputSize">
+            <option value="0">1280 x 720</option>
+            <option value="1" selected>1920 x 1080</option>
+            <option value="2">2560 x 1440</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+
+        <div class="two-col" id="customDimensions" hidden>
           <div class="control">
             <label for="outputWidth">Output width</label>
-            <input id="outputWidth" type="number" min="8" max="4096" step="1" value="640">
+            <input id="outputWidth" type="number" min="8" max="4096" step="1" value="1920">
           </div>
           <div class="control">
             <label for="outputHeight">Output height</label>
-            <input id="outputHeight" type="number" min="8" max="4096" step="1" value="400">
+            <input id="outputHeight" type="number" min="8" max="4096" step="1" value="1080">
           </div>
         </div>
 
@@ -106,50 +126,6 @@
         </div>
       </fieldset>
 
-      <fieldset>
-        <legend>Palette</legend>
-        <div class="control">
-          <label for="palettePreset">Preset</label>
-          <select id="palettePreset">
-            <option value="nabu">NABU green</option>
-            <option value="custom">Custom</option>
-          </select>
-        </div>
-
-        <div class="control">
-          <label for="shadowColor">Shadow color</label>
-          <input id="shadowColor" type="color" value="#0d0d0d">
-        </div>
-
-        <div class="control">
-          <label for="midColor">Mid color</label>
-          <input id="midColor" type="color" value="#00ff48">
-        </div>
-
-        <div class="control">
-          <label for="highlightColor">Highlight color</label>
-          <input id="highlightColor" type="color" value="#8cf2c3">
-        </div>
-
-        <label class="check-row" for="invertPalette">
-          <span>Invert palette</span>
-          <input id="invertPalette" type="checkbox">
-        </label>
-      </fieldset>
-
-      <fieldset>
-        <legend>Export</legend>
-        <div class="actions">
-          <button class="primary" id="downloadPng" type="button" disabled>Download PNG</button>
-          <button id="copyPng" type="button" disabled>Copy PNG</button>
-          <button id="savePreset" type="button">Save JSON</button>
-          <label class="file-button">
-            Load JSON
-            <input id="loadPreset" type="file" accept="application/json,.json">
-          </label>
-        </div>
-        <div class="status" id="status" role="status"></div>
-      </fieldset>
     </aside>
 
     <main class="stage">
@@ -171,6 +147,17 @@
             Drop or select a file to render an ordered dither.
           </div>
           <canvas id="previewCanvas" hidden></canvas>
+        </div>
+      </div>
+
+      <div class="export-bar">
+        <div class="status" id="status" role="status"></div>
+        <div class="actions">
+          <button class="primary" id="downloadPng" type="button" disabled>Download PNG</button>
+          <button id="copyPng" type="button" disabled>Copy PNG</button>
+          <button id="savePreset" type="button">Save JSON</button>
+          <button id="loadPresetButton" type="button">Load JSON</button>
+          <input id="loadPreset" class="hidden-file-input" type="file" accept="application/json,.json">
         </div>
       </div>
     </main>

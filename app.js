@@ -8,6 +8,8 @@ const controls = {
   imageInput: document.getElementById("imageInput"),
   dropzone: document.getElementById("dropzone"),
   fitMode: document.getElementById("fitMode"),
+  sizePreset: document.getElementById("sizePreset"),
+  outputSize: document.getElementById("outputSize"),
   outputWidth: document.getElementById("outputWidth"),
   outputHeight: document.getElementById("outputHeight"),
   pixelScale: document.getElementById("pixelScale"),
@@ -19,14 +21,10 @@ const controls = {
   gamma: document.getElementById("gamma"),
   contrast: document.getElementById("contrast"),
   brightness: document.getElementById("brightness"),
-  palettePreset: document.getElementById("palettePreset"),
-  shadowColor: document.getElementById("shadowColor"),
-  midColor: document.getElementById("midColor"),
-  highlightColor: document.getElementById("highlightColor"),
-  invertPalette: document.getElementById("invertPalette"),
   downloadPng: document.getElementById("downloadPng"),
   copyPng: document.getElementById("copyPng"),
   savePreset: document.getElementById("savePreset"),
+  loadPresetButton: document.getElementById("loadPresetButton"),
   loadPreset: document.getElementById("loadPreset")
 };
 
@@ -58,9 +56,66 @@ function getPixelSize() {
   return 2 ** getNumber("pixelScale");
 }
 
+const SIZE_RATIOS = { square: 1, horizontal: 16 / 9, vertical: 9 / 16 };
+const OUTPUT_SIZES = {
+  square: [[512, 512], [1024, 1024], [2048, 2048]],
+  horizontal: [[1280, 720], [1920, 1080], [2560, 1440]],
+  vertical: [[720, 1280], [1080, 1920], [1440, 2560]]
+};
+let lastDimension = "outputWidth";
+
+function populateSizes(selection = "1") {
+  const sizes = OUTPUT_SIZES[controls.sizePreset.value] || [];
+  controls.outputSize.replaceChildren();
+  sizes.forEach(([width, height], index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `${width} x ${height}`;
+    controls.outputSize.appendChild(option);
+  });
+  const custom = document.createElement("option");
+  custom.value = "custom";
+  custom.textContent = "Custom";
+  controls.outputSize.appendChild(custom);
+  controls.outputSize.value = sizes[Number(selection)] ? selection : "custom";
+  document.getElementById("customDimensions").hidden = controls.outputSize.value !== "custom";
+}
+
+function applyOutputSize() {
+  const size = (OUTPUT_SIZES[controls.sizePreset.value] || [])[controls.outputSize.value];
+  document.getElementById("customDimensions").hidden = Boolean(size);
+  if (size) {
+    [controls.outputWidth.value, controls.outputHeight.value] = size;
+    queueRender();
+  } else {
+    syncDimensions(lastDimension, true);
+  }
+}
+
+function syncDimensions(id = lastDimension, commit = false) {
+  const ratio = SIZE_RATIOS[controls.sizePreset.value];
+  const multiplier = id === "outputWidth" ? 1 / ratio : ratio;
+  const min = ratio ? Math.ceil(Math.max(8, 8 / multiplier)) : 8;
+  const max = ratio ? Math.floor(Math.min(4096, 4096 / multiplier)) : 4096;
+  const value = getNumber(id);
+  // Leave incomplete typing alone; normalize both dimensions when committed.
+  if (!commit && (!Number.isInteger(value) || value < min || value > max)) {
+    return;
+  }
+  const dimension = Math.round(clamp(value, min, max));
+  controls[id].value = dimension;
+  if (ratio) {
+    const other = id === "outputWidth" ? "outputHeight" : "outputWidth";
+    controls[other].value = Math.round(dimension * multiplier);
+  }
+  queueRender();
+}
+
 function getSettings() {
   return {
     fitMode: controls.fitMode.value,
+    sizePreset: controls.sizePreset.value,
+    outputSize: controls.outputSize.value,
     outputWidth: Math.round(clamp(getNumber("outputWidth"), 8, 4096)),
     outputHeight: Math.round(clamp(getNumber("outputHeight"), 8, 4096)),
     pixelScale: getPixelSize(),
@@ -71,12 +126,7 @@ function getSettings() {
     whitePoint: getNumber("whitePoint"),
     gamma: getNumber("gamma"),
     contrast: getNumber("contrast"),
-    brightness: getNumber("brightness"),
-    palettePreset: controls.palettePreset.value,
-    shadowColor: controls.shadowColor.value,
-    midColor: controls.midColor.value,
-    highlightColor: controls.highlightColor.value,
-    invertPalette: controls.invertPalette.checked
+    brightness: getNumber("brightness")
   };
 }
 
@@ -147,11 +197,11 @@ function mixRgb(a, b, t) {
   };
 }
 
-function mapPalette(luma, settings) {
-  const shadow = hexToRgb(settings.shadowColor);
-  const mid = hexToRgb(settings.midColor);
-  const highlight = hexToRgb(settings.highlightColor);
-  const value = settings.invertPalette ? 1 - luma : luma;
+function mapPalette(luma) {
+  const shadow = hexToRgb(NABU_PALETTE.shadowColor);
+  const mid = hexToRgb(NABU_PALETTE.midColor);
+  const highlight = hexToRgb(NABU_PALETTE.highlightColor);
+  const value = luma;
 
   if (value <= 0.5) {
     return mixRgb(shadow, mid, value / 0.5);
@@ -269,7 +319,7 @@ function render() {
             continue;
           }
           const luma = ditherAndPosterize(tonedLuma, settings, outX, outY, bayer);
-          const color = mapPalette(luma, settings);
+          const color = mapPalette(luma);
           const outIndex = (outY * finalWidth + outX) * 4;
           output.data[outIndex] = color.r;
           output.data[outIndex + 1] = color.g;
@@ -315,19 +365,6 @@ function updateMeta(settings) {
   });
 }
 
-function applyPresetPalette() {
-  if (controls.palettePreset.value !== "nabu") {
-    return;
-  }
-  controls.shadowColor.value = NABU_PALETTE.shadowColor;
-  controls.midColor.value = NABU_PALETTE.midColor;
-  controls.highlightColor.value = NABU_PALETTE.highlightColor;
-}
-
-function markCustomPalette() {
-  controls.palettePreset.value = "custom";
-}
-
 async function loadImageFile(file) {
   if (!file || !file.type.startsWith("image/")) {
     setStatus("Choose an image file.", true);
@@ -362,9 +399,9 @@ function downloadPng() {
     }
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    const base = sourceName.replace(/\.[^.]+$/, "") || "nabu-dither";
+    const base = sourceName.replace(/\.[^.]+$/, "") || "dithermaxxxing";
     link.href = url;
-    link.download = `${base}-nabu-dither.png`;
+    link.download = `${base}-dithermaxxxing.png`;
     link.click();
     URL.revokeObjectURL(url);
     setStatus("PNG downloaded.");
@@ -394,14 +431,14 @@ async function copyPng() {
 function savePreset() {
   const preset = {
     version: 1,
-    app: "NABU Green Dither Lab",
+    app: "Dithermaxxxing",
     settings: getSettings()
   };
   const blob = new Blob([JSON.stringify(preset, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "nabu-dither-preset.json";
+  link.download = "dithermaxxxing-preset.json";
   link.click();
   URL.revokeObjectURL(url);
   setStatus("Preset JSON saved.");
@@ -429,6 +466,13 @@ async function loadPreset(file) {
         control.value = value;
       }
     });
+    controls.sizePreset.value = Object.hasOwn(SIZE_RATIOS, settings.sizePreset)
+      ? settings.sizePreset : "custom";
+    lastDimension = "outputWidth";
+    syncDimensions(lastDimension, true);
+    const sizes = OUTPUT_SIZES[controls.sizePreset.value] || [];
+    const match = sizes.findIndex(([w, h]) => w === getNumber("outputWidth") && h === getNumber("outputHeight"));
+    populateSizes(settings.outputSize === "custom" || match < 0 ? "custom" : String(match));
     updateValueLabels();
     setStatus("Preset loaded.");
     queueRender();
@@ -458,20 +502,22 @@ controls.imageInput.addEventListener("change", (event) => {
   loadImageFile(event.target.files[0]);
 });
 
-controls.palettePreset.addEventListener("change", () => {
-  applyPresetPalette();
-  queueRender();
+controls.sizePreset.addEventListener("change", () => {
+  populateSizes(controls.outputSize.value);
+  applyOutputSize();
 });
-
-["shadowColor", "midColor", "highlightColor"].forEach((id) => {
+controls.outputSize.addEventListener("change", applyOutputSize);
+["outputWidth", "outputHeight"].forEach((id) => {
   controls[id].addEventListener("input", () => {
-    markCustomPalette();
-    queueRender();
+    lastDimension = id;
+    syncDimensions(id);
   });
+  controls[id].addEventListener("change", () => syncDimensions(id, true));
 });
 
 Object.entries(controls).forEach(([id, control]) => {
-  if (!control || ["imageInput", "dropzone", "downloadPng", "copyPng", "savePreset", "loadPreset", "palettePreset", "shadowColor", "midColor", "highlightColor"].includes(id)) {
+  if (["sizePreset", "outputSize", "outputWidth", "outputHeight"].includes(id)) return;
+  if (!control || ["imageInput", "dropzone", "downloadPng", "copyPng", "savePreset", "loadPresetButton", "loadPreset"].includes(id)) {
     return;
   }
   control.addEventListener("input", queueRender);
@@ -481,6 +527,7 @@ Object.entries(controls).forEach(([id, control]) => {
 controls.downloadPng.addEventListener("click", downloadPng);
 controls.copyPng.addEventListener("click", copyPng);
 controls.savePreset.addEventListener("click", savePreset);
+controls.loadPresetButton.addEventListener("click", () => controls.loadPreset.click());
 controls.loadPreset.addEventListener("change", (event) => loadPreset(event.target.files[0]));
 
 updateValueLabels();
